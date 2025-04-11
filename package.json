@@ -29,6 +29,7 @@
     "react-dom": "^19.1.0",
     "superjson": "^2.2.2",
     "tailwind-merge": "^3.2.0",
+    "thirdweb": "^5.93.17",
     "vinxi": "^0.5.3",
     "zod": "^3.24.2"
   },

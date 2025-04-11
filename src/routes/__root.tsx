@@ -9,6 +9,7 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import { useEffect } from "react";
+import { ThirdwebProvider } from "thirdweb/react";
 import appCss from "~/lib/styles/app.css?url";
 import { TRPCRouter } from "~/trpc/router";
 
@@ -38,7 +39,9 @@ export const Route = createRootRouteWithContext<{
 function RootComponent() {
   return (
     <RootDocument>
-      <Outlet />
+      <ThirdwebProvider>
+        <Outlet />
+      </ThirdwebProvider>
     </RootDocument>
   );
 }

@@ -1,42 +1,40 @@
 import { TRPCRouterRecord } from "@trpc/server";
-import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "./init";
+import { z } from "zod";
 
-const mockPosts = [
-  {
-    id: "1",
-    title: "Hello Tanstack",
-    body: "world",
-  },
-  {
-    id: "2",
-    title: "Hello Trpc",
-    body: "world",
-  },
-] satisfies Post[];
+const gameMock = Array(20)
+  .fill(null)
+  .map(() =>
+    Array(20)
+      .fill(null)
+      .map(() =>
+        Math.random() > 0.5
+          ? `0x${Array(40)
+              .fill(0)
+              .map(() => Math.floor(Math.random() * 16).toString(16))
+              .join("")}`
+          : null,
+      ),
+  );
 
-type Post = {
-  id: string;
-  title: string;
-  body: string;
-};
-
-const postRouter = {
-  list: publicProcedure.query(async () => {
-    return mockPosts;
+const gameRouter = {
+  genRate: publicProcedure
+    .input(
+      z.object({
+        address: z.string(),
+      }),
+    )
+    .query(async ({ input }) => {
+      if (!input.address) return 0;
+      return 100;
+    }),
+  gameField: publicProcedure.query(async () => {
+    return gameMock;
   }),
-  byId: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
-    return mockPosts.find((post) => post.id === input.id);
-  }),
-} satisfies TRPCRouterRecord;
-
-const userRouter = {
-  me: publicProcedure.query(() => ({ name: "John Doe" })),
 } satisfies TRPCRouterRecord;
 
 export const trpcRouter = createTRPCRouter({
-  post: postRouter,
-  user: userRouter,
+  game: gameRouter,
 });
 
 export type TRPCRouter = typeof trpcRouter;
