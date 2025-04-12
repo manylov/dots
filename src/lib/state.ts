@@ -6,6 +6,7 @@ interface Cluster {
 }
 
 const cellCost = 5; // 5 tokens per cell
+const swapCost = 1; // 1 token per swap
 const commissionPercent = 10; // 10% commission
 const numPlayers = 20; // Number of players
 
@@ -68,6 +69,50 @@ const calculateClusterWeight = (cellCount: number): number => {
   return cellCount * 3.0; // 20+ cells
 };
 
+// Recalculate clusters for a player after cell changes
+const recalculatePlayerClusters = (playerIndex: number) => {
+  // Get all cells belonging to the player
+  const playerCells = store.gamefield.reduce<number[]>((cells, cell, index) => {
+    if (cell === playerIndex) cells.push(index);
+    return cells;
+  }, []);
+
+  // Reset player's clusters
+  store.clusters[playerIndex] = [];
+  const visited = new Set<number>();
+  const playerColor = getPlayerColor(playerIndex);
+
+  // Find all clusters using DFS
+  for (const cell of playerCells) {
+    if (visited.has(cell)) continue;
+
+    const cluster: number[] = [];
+    const stack = [cell];
+
+    while (stack.length > 0) {
+      const current = stack.pop()!;
+      if (visited.has(current)) continue;
+
+      visited.add(current);
+      cluster.push(current);
+
+      // Check adjacent cells
+      const adjacent = getAdjacentCells(current);
+      for (const adj of adjacent) {
+        if (!visited.has(adj) && store.gamefield[adj] === playerIndex) {
+          stack.push(adj);
+        }
+      }
+    }
+
+    // Add new cluster
+    store.clusters[playerIndex].push({
+      cells: cluster,
+      color: playerColor,
+    });
+  }
+};
+
 const recalculatePlayerWeight = (playerIndex: number) => {
   const playerClusters = store.clusters[playerIndex];
   const totalWeight = playerClusters.reduce((sum, cluster) => {
@@ -94,11 +139,89 @@ const updateAvailableCells = () => {
   store.availableCells = Array.from(calculateAvailableCells());
 };
 
+// Handle cell swapping between players
+export const swapCells = (targetIndex: number) => {
+  // If no cell is selected or trying to swap with the same cell, do nothing
+  if (store.selectedCell === null || store.selectedCell === targetIndex) return;
+
+  const selectedPlayerIndex = store.selectedPlayerIndex;
+  const targetPlayerIndex = store.gamefield[targetIndex];
+
+  // Cannot swap with empty cell
+  if (targetPlayerIndex === null) return;
+
+  // Calculate commission
+  const commission = (swapCost * commissionPercent) / 100;
+  const distributableAmount = swapCost - commission;
+
+  // Calculate token distribution before making any changes
+  const distribution = calculateTokenDistribution(distributableAmount);
+
+  // Increase the spent amount for the initiating player
+  store.spent[selectedPlayerIndex] += swapCost;
+
+  // Add commission to treasury first
+  store.treasury += commission;
+
+  // Distribute the remaining amount based on weights
+  store.earned = store.earned.map((earned, index) => earned + distribution[index]);
+
+  // Swap the cells
+  const selectedCell = store.selectedCell;
+  store.gamefield[selectedCell] = targetPlayerIndex;
+  store.gamefield[targetIndex] = selectedPlayerIndex;
+
+  // Get unique player indices involved in the swap
+  const affectedPlayers = new Set([selectedPlayerIndex, targetPlayerIndex]);
+
+  // Recalculate clusters and weights for affected players
+  affectedPlayers.forEach((playerIndex) => {
+    recalculatePlayerClusters(playerIndex);
+    recalculatePlayerWeight(playerIndex);
+  });
+
+  // Update balances
+  store.balances = store.balances.map(
+    (_, index) => store.earned[index] - store.spent[index],
+  );
+
+  // Clear selected cell
+  store.selectedCell = null;
+};
+
+export const selectCell = (index: number) => {
+  const playerIndex = store.gamefield[index];
+
+  // Can only select own cells
+  if (playerIndex !== store.selectedPlayerIndex) return;
+
+  // If clicking the same cell, deselect it
+  if (store.selectedCell === index) {
+    store.selectedCell = null;
+    return;
+  }
+
+  // If clicking another owned cell, select it
+  store.selectedCell = index;
+};
+
 export const playerClickHandler = (index: number) => {
   const selectedPlayerIndex = store.selectedPlayerIndex;
 
+  // If a cell is selected and clicking on another player's cell, handle swap
+  if (store.selectedCell !== null && store.gamefield[index] !== null) {
+    swapCells(index);
+    return;
+  }
+
   // Check if cell is already taken
-  if (store.gamefield[index] !== null) return;
+  if (store.gamefield[index] !== null) {
+    // If clicking own cell, handle selection
+    if (store.gamefield[index] === selectedPlayerIndex) {
+      selectCell(index);
+    }
+    return;
+  }
 
   // Check if the cell is available for placement
   if (!store.availableCells.includes(index)) return;
@@ -191,6 +314,11 @@ export const playerClickHandler = (index: number) => {
   updateAvailableCells();
 };
 
+export const selectPlayer = (index: number) => {
+  store.selectedPlayerIndex = index;
+  store.selectedCell = null; // Reset selected cell when switching players
+};
+
 export const store = proxy<{
   gamefield: (number | null)[];
   spent: number[];
@@ -201,6 +329,7 @@ export const store = proxy<{
   clusters: Cluster[][];
   treasury: number;
   availableCells: number[];
+  selectedCell: number | null;
 }>({
   gamefield: Array.from({ length: 400 }, () => null),
   spent: Array(numPlayers).fill(0),
@@ -213,4 +342,5 @@ export const store = proxy<{
     .map(() => []), // Clusters for all players
   treasury: 0,
   availableCells: Array.from({ length: 400 }, (_, i) => i), // Initially all cells are available
+  selectedCell: null, // Currently selected cell for swapping
 });

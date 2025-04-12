@@ -1,5 +1,5 @@
 import { useSnapshot } from "valtio";
-import { store } from "~/lib/state";
+import { selectPlayer, store } from "~/lib/state";
 
 export const PlayersSelect = () => {
   const { spent, earned, balances, weights, selectedPlayerIndex } = useSnapshot(store);
@@ -11,7 +11,7 @@ export const PlayersSelect = () => {
           <button
             data-selected={selectedPlayerIndex === index}
             className="h-full w-full rounded-lg bg-gray-200 px-2 py-1 text-sm data-[selected=true]:bg-gray-400"
-            onClick={() => (store.selectedPlayerIndex = index)}
+            onClick={() => selectPlayer(index)}
           >
             <div className="flex items-center justify-between">
               <div className="font-medium">P{index}</div>

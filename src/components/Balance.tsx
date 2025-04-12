@@ -6,7 +6,7 @@ export const Treasury = () => {
 
   return (
     <div className="flex flex-col gap-1">
-      <div>Treasury: {treasury.toFixed(0)}</div>
+      <div>Treasury: {treasury.toFixed(2)}</div>
       <div className="text-sm text-gray-500">Commission: 10%</div>
     </div>
   );
