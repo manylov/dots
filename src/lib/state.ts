@@ -7,6 +7,7 @@ interface Cluster {
 
 const cellCost = 5; // 5 tokens per cell
 const commissionPercent = 10; // 10% commission
+const numPlayers = 10; // Number of players
 
 const getAdjacentCells = (index: number) => {
   const row = Math.floor(index / 20);
@@ -51,7 +52,7 @@ const calculateTokenDistribution = (amount: number): number[] => {
 
   if (totalWeight === 0) {
     // If no weights, all tokens go to treasury
-    return [0, 0];
+    return Array(numPlayers).fill(0);
   } else {
     // Distribute based on weights
     return store.weights.map((weight) => (weight / totalWeight) * amount);
@@ -158,11 +159,13 @@ export const store = proxy<{
   treasury: number;
 }>({
   gamefield: Array.from({ length: 400 }, () => null),
-  spent: [0, 0],
-  earned: [0, 0],
-  balances: [0, 0],
-  weights: [0, 0],
-  selectedPlayerIndex: 1,
-  clusters: [[], []], // Clusters for player 0 and player 1
+  spent: Array(numPlayers).fill(0),
+  earned: Array(numPlayers).fill(0),
+  balances: Array(numPlayers).fill(0),
+  weights: Array(numPlayers).fill(0),
+  selectedPlayerIndex: 0,
+  clusters: Array(numPlayers)
+    .fill([])
+    .map(() => []), // Clusters for all players
   treasury: 0,
 });
