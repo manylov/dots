@@ -9,6 +9,14 @@ const cellCost = 5; // 5 tokens per cell
 const commissionPercent = 10; // 10% commission
 const numPlayers = 20; // Number of players
 
+// Generate a consistent color for a player based on their index
+const getPlayerColor = (playerIndex: number): string => {
+  // Use a simple hash function to generate a hue value between 0 and 360
+  const hue = (playerIndex * 137.508) % 360; // golden ratio * 360/2
+  // Use high saturation and lightness for vibrant, visible colors
+  return `hsl(${hue}, 70%, 65%)`;
+};
+
 const getAdjacentCells = (index: number) => {
   const row = Math.floor(index / 20);
   const col = index % 20;
@@ -50,10 +58,6 @@ const calculateAvailableCells = () => {
   });
 
   return availableCells;
-};
-
-const generateRandomColor = () => {
-  return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
 };
 
 const calculateClusterWeight = (cellCount: number): number => {
@@ -121,11 +125,13 @@ export const playerClickHandler = (index: number) => {
     (cellIndex) => store.gamefield[cellIndex] === selectedPlayerIndex,
   );
 
+  const playerColor = getPlayerColor(selectedPlayerIndex);
+
   if (adjacentPlayerCells.length === 0) {
     // Create new cluster
     store.clusters[selectedPlayerIndex].push({
       cells: [index],
-      color: generateRandomColor(),
+      color: playerColor,
     });
   } else {
     // Find all clusters that contain adjacent cells
@@ -137,7 +143,7 @@ export const playerClickHandler = (index: number) => {
       // Should never happen, but just in case
       store.clusters[selectedPlayerIndex].push({
         cells: [index],
-        color: generateRandomColor(),
+        color: playerColor,
       });
     } else if (connectedClusters.length === 1) {
       // Add to existing cluster
@@ -148,7 +154,7 @@ export const playerClickHandler = (index: number) => {
         cells: [
           ...new Set([index, ...connectedClusters.flatMap((cluster) => cluster.cells)]),
         ],
-        color: connectedClusters[0].color,
+        color: playerColor,
       };
 
       // Remove old clusters
