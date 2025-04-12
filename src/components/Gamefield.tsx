@@ -1,29 +1,32 @@
-import { useQuery } from "@tanstack/react-query";
 import { useSnapshot } from "valtio";
 import { playerClickHandler, store } from "~/lib/state";
-import { useTRPC } from "~/trpc/react";
 
 export const Gamefield = () => {
-  // const trpc = useTRPC();
-
-  // const { data: gameField, isLoading } = useQuery(trpc.game.gameField.queryOptions());
-
-  // if (isLoading) {
-  //   return <div>Loading...</div>;
-  // }
-
-  const { gamefield } = useSnapshot(store);
+  const { gamefield, availableCells } = useSnapshot(store);
 
   const getCellStyle = (index: number) => {
     const playerIndex = store.gamefield[index];
-    if (playerIndex === null) return {};
+    if (playerIndex === null) {
+      // If cell is empty, check if it's available
+      if (availableCells.includes(index)) {
+        return {
+          backgroundColor: "#FFFDE7", // Light yellow
+          cursor: "pointer",
+        };
+      }
+      return {
+        backgroundColor: "#E5E7EB", // Default gray
+        cursor: "not-allowed",
+      };
+    }
 
     const cluster = store.clusters[playerIndex].find((cluster) =>
       cluster.cells.includes(index),
     );
 
     return {
-      border: `1px solid ${cluster?.color || "transparent"}`,
+      backgroundColor: cluster?.color || "transparent",
+      cursor: "not-allowed",
     };
   };
 
@@ -32,9 +35,9 @@ export const Gamefield = () => {
       <div className="grid grid-cols-20 gap-2">
         {gamefield?.flat().map((cell, index) => (
           <div
-            className="flex aspect-square h-8 items-center justify-center rounded-lg bg-gray-200 text-sm hover:bg-gray-300"
+            className="flex aspect-square h-8 items-center justify-center rounded-lg text-sm"
             key={`${index}-${cell}`}
-            onClick={() => playerClickHandler(index)}
+            onClick={() => availableCells.includes(index) && playerClickHandler(index)}
             style={getCellStyle(index)}
           >
             {cell}

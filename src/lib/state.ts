@@ -7,7 +7,7 @@ interface Cluster {
 
 const cellCost = 5; // 5 tokens per cell
 const commissionPercent = 10; // 10% commission
-const numPlayers = 10; // Number of players
+const numPlayers = 20; // Number of players
 
 const getAdjacentCells = (index: number) => {
   const row = Math.floor(index / 20);
@@ -24,6 +24,32 @@ const getAdjacentCells = (index: number) => {
   if (row < 19) adjacent.push(index + 20);
 
   return adjacent;
+};
+
+// Calculate available cells for placement (empty cells with at least one neighbor)
+const calculateAvailableCells = () => {
+  const availableCells = new Set<number>();
+
+  // If no cells are placed yet, all cells are available
+  const hasAnyCells = store.gamefield.some((cell) => cell !== null);
+  if (!hasAnyCells) {
+    for (let i = 0; i < 400; i++) {
+      availableCells.add(i);
+    }
+    return availableCells;
+  }
+
+  // Find all empty cells that have at least one occupied neighbor
+  store.gamefield.forEach((cell, index) => {
+    if (cell === null) {
+      const adjacentCells = getAdjacentCells(index);
+      if (adjacentCells.some((adjIndex) => store.gamefield[adjIndex] !== null)) {
+        availableCells.add(index);
+      }
+    }
+  });
+
+  return availableCells;
 };
 
 const generateRandomColor = () => {
@@ -59,11 +85,19 @@ const calculateTokenDistribution = (amount: number): number[] => {
   }
 };
 
+// Update available cells whenever the game field changes
+const updateAvailableCells = () => {
+  store.availableCells = Array.from(calculateAvailableCells());
+};
+
 export const playerClickHandler = (index: number) => {
   const selectedPlayerIndex = store.selectedPlayerIndex;
 
   // Check if cell is already taken
   if (store.gamefield[index] !== null) return;
+
+  // Check if the cell is available for placement
+  if (!store.availableCells.includes(index)) return;
 
   // Check if this is the first move (all users have 0 weights)
   const isFirstMove = store.weights.every((weight) => weight === 0);
@@ -146,6 +180,9 @@ export const playerClickHandler = (index: number) => {
   store.balances = store.balances.map(
     (_, index) => store.earned[index] - store.spent[index],
   );
+
+  // Update available cells
+  updateAvailableCells();
 };
 
 export const store = proxy<{
@@ -157,6 +194,7 @@ export const store = proxy<{
   selectedPlayerIndex: number;
   clusters: Cluster[][];
   treasury: number;
+  availableCells: number[];
 }>({
   gamefield: Array.from({ length: 400 }, () => null),
   spent: Array(numPlayers).fill(0),
@@ -168,4 +206,5 @@ export const store = proxy<{
     .fill([])
     .map(() => []), // Clusters for all players
   treasury: 0,
+  availableCells: Array.from({ length: 400 }, (_, i) => i), // Initially all cells are available
 });
