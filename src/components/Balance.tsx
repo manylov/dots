@@ -1,21 +1,13 @@
-import { getContract } from "thirdweb";
-import { getBalance } from "thirdweb/extensions/erc20";
-import { client, zero } from "~/lib/thirdweb";
-import { useActiveAccount, useReadContract } from "thirdweb/react";
+import { useSnapshot } from "valtio";
+import { store } from "~/lib/state";
 
-const contract = getContract({
-  client,
-  address: "0x1A90DD3Dd89E2D2095ED1B40eCC1fe2BbB7614a1",
-  chain: zero,
-});
+export const Treasury = () => {
+  const { treasury } = useSnapshot(store);
 
-export const Balance = () => {
-  const account = useActiveAccount();
-
-  const balance = useReadContract(getBalance, {
-    contract,
-    address: account?.address ?? "",
-  });
-
-  return <div>Balance: {balance.data?.displayValue}</div>;
+  return (
+    <div className="flex flex-col gap-1">
+      <div>Treasury: {treasury.toFixed(0)}</div>
+      <div className="text-sm text-gray-500">Commission: 10%</div>
+    </div>
+  );
 };
